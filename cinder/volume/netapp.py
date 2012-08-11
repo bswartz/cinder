@@ -1069,9 +1069,12 @@ class NetAppCmodeISCSIDriver(driver.ISCSIDriver):
         """
         self.lun_table = {}
         luns = self.client.service.ListLuns()
-        for lun in luns.Lun:
+        for lun in luns:
+            meta_dict = {}
+            if hasattr(lun, 'Metadata'):
+                meta_dict = self._create_dict_from_meta(lun.Metadata)
             discovered_lun = NetAppLun(lun.Handle, lun.Name, lun.Size,
-                    self._create_dict_from_meta(lun.MetadataArray))
+                meta_dict)
             self._add_lun_to_table(discovered_lun)
         LOG.debug(_("Success getting LUN list from server"))
 
@@ -1092,12 +1095,12 @@ class NetAppCmodeISCSIDriver(driver.ISCSIDriver):
         extra_args['Description'] = volume['display_description']
         extra_args['SpaceReserved'] = True
         server = self.client.service
-        metadata_array = self._create_metadata_list(extra_args)
+        metadata = self._create_metadata_list(extra_args)
         lun = server.ProvisionLun(Name=name, Size=size,
-                                  MetadataArray=metadata_array)
+                                  Metadata=metadata)
         LOG.debug(_("Created LUN with name %s") % name)
         self._add_lun_to_table(NetAppLun(lun.Handle, lun.Name,
-             lun.Size, self._create_dict_from_meta(lun.MetadataArray)))
+             lun.Size, self._create_dict_from_meta(lun.Metadata)))
 
     def delete_volume(self, volume):
         """Driver entry point for destroying existing volumes."""
@@ -1144,19 +1147,16 @@ class NetAppCmodeISCSIDriver(driver.ISCSIDriver):
         msg = _("Mapped LUN %(handle)s to the initiator %(initiator_name)s")
         LOG.debug(msg % locals())
 
-        target_details_array = server.GetLunTargetDetails(Handle=handle,
+        target_details_list = server.GetLunTargetDetails(Handle=handle,
                 InitiatorType="iscsi", InitiatorName=initiator_name)
         msg = _("Succesfully fetched target details for LUN %(handle)s and "
                 "initiator %(initiator_name)s")
         LOG.debug(msg % locals())
 
-        target_details = None
-        for details in target_details_array.TargetDetail:
-            target_details = details
-            break
-        if not target_details:
+        if not target_details_list:
             msg = _('Failed to get LUN target details for the LUN %s')
             raise exception.VolumeBackendAPIException(data=msg % handle)
+        target_details = target_details_list[0]
         if not target_details.Address and target_details.Port:
             msg = _('Failed to get target portal for the LUN %s')
             raise exception.VolumeBackendAPIException(data=msg % handle)
@@ -1260,20 +1260,20 @@ class NetAppCmodeISCSIDriver(driver.ISCSIDriver):
         server = self.client.service
         metadata = self._create_metadata_list(extra_args)
         lun = server.CloneLun(Handle=handle, NewName=new_name,
-                              MetadataArray=metadata)
+                              Metadata=metadata)
         LOG.debug(_("Cloned LUN with new name %s") % new_name)
         self._add_lun_to_table(NetAppLun(lun.Handle, lun.Name,
-             lun.Size, self._create_dict_from_meta(lun.MetadataArray)))
+             lun.Size, self._create_dict_from_meta(lun.Metadata)))
 
     def _create_metadata_list(self, extra_args):
-        """Creates metadataArray from kwargs."""
-        metadata_array = self.client.factory.create("MetadataArray")
+        """Creates metadata from kwargs."""
+        metadata = []
         for key in extra_args.keys():
             meta = self.client.factory.create("Metadata")
             meta.Key = key
             meta.Value = extra_args[key]
-            metadata_array.Metadata.append(meta)
-        return metadata_array
+            metadata.append(meta)
+        return metadata
 
     def _get_lun_handle(self, name):
         """Get the details for a LUN from our cache table."""
@@ -1282,11 +1282,11 @@ class NetAppCmodeISCSIDriver(driver.ISCSIDriver):
             return None
         return self.lun_table[name]
 
-    def _create_dict_from_meta(self, metadata_array):
+    def _create_dict_from_meta(self, metadata):
         """Creates dictionary from metadata array."""
         meta_dict = {}
-        if not hasattr(metadata_array, 'Metadata'):
+        if not metadata:
             return meta_dict
-        for meta in metadata_array.Metadata:
+        for meta in metadata:
             meta_dict[meta.Key] = meta.Value
         return meta_dict

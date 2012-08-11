@@ -1007,7 +1007,7 @@ targetNamespace="http://cloud.netapp.com/">
           <xs:all>
             <xs:element name="Name" type="xs:string"/>
             <xs:element name="Size" type="xsd:long"/>
-            <xs:element name="MetadataArray" type="na:MetadataArray"/>
+            <xs:element name="Metadata" type="na:Metadata" minOccurs="0" maxOccurs="unbounded"/>
           </xs:all>
         </xs:complexType>
       </xs:element>
@@ -1037,7 +1037,7 @@ targetNamespace="http://cloud.netapp.com/">
           <xs:all>
             <xs:element name="Handle" type="xsd:string"/>
             <xs:element name="NewName" type="xsd:string"/>
-            <xs:element name="MetadataArray" type="na:MetadataArray"/>
+            <xs:element name="Metadata" type="na:Metadata" minOccurs="0" maxOccurs="unbounded"/>
           </xs:all>
         </xs:complexType>
       </xs:element>
@@ -1089,7 +1089,7 @@ targetNamespace="http://cloud.netapp.com/">
       <xs:element name="ListLunsResult">
         <xs:complexType>
           <xs:all>
-            <xs:element name="LunArray" type="na:LunArray"/>
+            <xs:element name="Lun" type="na:Lun" minOccurs="0" maxOccurs="unbounded"/>
           </xs:all>
         </xs:complexType>
       </xs:element>
@@ -1106,8 +1106,7 @@ targetNamespace="http://cloud.netapp.com/">
       <xs:element name="GetLunTargetDetailsResult">
         <xs:complexType>
           <xs:all>
-            <xs:element name="TargetDetailsArray"
-              type="na:TargetDetailsArray"/>
+            <xs:element name="TargetDetails" type="na:TargetDetails" minOccurs="0" maxOccurs="unbounded"/>
           </xs:all>
         </xs:complexType>
       </xs:element>
@@ -1118,27 +1117,17 @@ targetNamespace="http://cloud.netapp.com/">
           <xs:element name="Value" type="xs:string"/>
         </xs:sequence>
       </xs:complexType>
-      <xs:complexType name="MetadataArray">
-        <xs:sequence>
-          <xs:element name="Metadata" type="na:Metadata" minOccurs="0"
-            maxOccurs="unbounded" />
-        </xs:sequence>
-      </xs:complexType>
+
       <xs:complexType name="Lun">
         <xs:sequence>
           <xs:element name="Name" type="xs:string"/>
           <xs:element name="Size" type="xs:long"/>
           <xs:element name="Handle" type="xs:string"/>
-          <xs:element name="MetadataArray" type="na:MetadataArray"/>
+          <xs:element name="Metadata" type="na:Metadata" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
       </xs:complexType>
-      <xs:complexType name="LunArray">
-        <xs:sequence>
-          <xs:element name="Lun" type="na:Lun" minOccurs="0"
-            maxOccurs="unbounded"/>
-        </xs:sequence>
-      </xs:complexType>
-      <xs:complexType name="TargetDetail">
+
+      <xs:complexType name="TargetDetails">
         <xs:sequence>
           <xs:element name="Address" type="xs:string"/>
           <xs:element name="Port" type="xs:int"/>
@@ -1147,13 +1136,8 @@ targetNamespace="http://cloud.netapp.com/">
           <xs:element name="LunNumber" type="xs:int"/>
         </xs:sequence>
       </xs:complexType>
-      <xs:complexType name="TargetDetailsArray">
-        <xs:sequence>
-          <xs:element name="TargetDetail" type="na:TargetDetail"
-            maxOccurs="unbounded"/>
-        </xs:sequence>
-      </xs:complexType>
-     </xs:schema></types>"""
+
+    </xs:schema></types>"""
 
 WSDL_TRAILER_CMODE = """<service name="CloudStorageService">
     <port name="CloudStoragePort" binding="na:CloudStorageBinding">
@@ -1240,8 +1224,8 @@ class FakeCMODEServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             "http://cloud.netapp.com/">
             <Lun><Name>lun1</Name><Size>20</Size>
              <Handle>1d9c006c-a406-42f6-a23f-5ed7a6dc33e3</Handle>
-            <MetadataArray><Metadata><Key>OsType</Key>
-            <Value>linux</Value></Metadata></MetadataArray></Lun>
+            <Metadata><Key>OsType</Key>
+            <Value>linux</Value></Metadata></Lun>
             </ns:ProvisionLunResult>"""
         elif 'DestroyLun' == api:
             body = """<ns:DestroyLunResult xmlns:ns="http://cloud.netapp.com/"
@@ -1250,9 +1234,9 @@ class FakeCMODEServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             body = """<ns:CloneLunResult xmlns:ns="http://cloud.netapp.com/">
                      <Lun><Name>lun2</Name><Size>2</Size>
                      <Handle>98ea1791d228453899d422b4611642c3</Handle>
-                     <MetadataArray><Metadata><Key>OsType</Key>
+                     <Metadata><Key>OsType</Key>
                      <Value>linux</Value></Metadata>
-                     </MetadataArray></Lun></ns:CloneLunResult>"""
+                     </Lun></ns:CloneLunResult>"""
         elif 'MapLun' == api:
             body = """<ns1:MapLunResult xmlns:ns="http://cloud.netapp.com/"
              />"""
@@ -1261,19 +1245,15 @@ class FakeCMODEServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
              />"""
         elif 'ListLuns' == api:
             body = """<ns:ListLunsResult xmlns:ns="http://cloud.netapp.com/">
-                 <LunArray>
                  <Lun>
                  <Name>lun1</Name>
                  <Size>20</Size>
                  <Handle>asdjdnsd</Handle>
-                 <MetadataArray />
                  </Lun>
-                 </LunArray>
                  </ns:ListLunsResult>"""
         elif 'GetLunTargetDetails' == api:
             body = """<ns:GetLunTargetDetailsResult
             xmlns:ns="http://cloud.netapp.com/">
-                    <TargetDetailsArray>
                     <TargetDetail>
                      <Address>1.2.3.4</Address>
                      <Port>3260</Port>
@@ -1281,7 +1261,6 @@ class FakeCMODEServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                      <Iqn>iqn.199208.com.netapp:sn.123456789</Iqn>
                      <LunNumber>0</LunNumber>
                     </TargetDetail>
-                    </TargetDetailsArray>
                     </ns:GetLunTargetDetailsResult>"""
         else:
             # Unknown API
