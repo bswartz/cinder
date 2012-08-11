@@ -1002,159 +1002,155 @@ WSDL_TYPES_CMODE = """<types>
 xmlns:xs="http://www.w3.org/2001/XMLSchema" version="1.0"
 targetNamespace="http://cloud.netapp.com/">
 
-      <xs:element name="provisionLun">
+      <xs:element name="ProvisionLun">
         <xs:complexType>
           <xs:all>
-            <xs:element name="name" type="xs:string"/>
-            <xs:element name="size" type="xsd:long"/>
-            <xs:element name="metadataArray" type="na:metadataArray"/>
+            <xs:element name="Name" type="xs:string"/>
+            <xs:element name="Size" type="xsd:long"/>
+            <xs:element name="MetadataArray" type="na:MetadataArray"/>
           </xs:all>
         </xs:complexType>
       </xs:element>
-      <xs:element name="provisionLunResult">
+      <xs:element name="ProvisionLunResult">
         <xs:complexType>
           <xs:all>
-            <xs:element name="lun" type="na:lun"/>
+            <xs:element name="Lun" type="na:Lun"/>
           </xs:all>
         </xs:complexType>
       </xs:element>
 
-      <xs:element name="destroyLun">
+      <xs:element name="DestroyLun">
         <xs:complexType>
           <xs:all>
-            <xs:element name="handle" type="xsd:string"/>
+            <xs:element name="Handle" type="xsd:string"/>
           </xs:all>
         </xs:complexType>
       </xs:element>
-      <xs:element name="destroyLunResult">
+      <xs:element name="DestroyLunResult">
         <xs:complexType>
           <xs:all/>
         </xs:complexType>
       </xs:element>
 
-      <xs:element name="cloneLun">
+      <xs:element name="CloneLun">
         <xs:complexType>
           <xs:all>
-            <xs:element name="handle" type="xsd:string"/>
-            <xs:element name="newName" type="xsd:string"/>
-            <xs:element name="metadataArray" type="na:metadataArray"/>
+            <xs:element name="Handle" type="xsd:string"/>
+            <xs:element name="NewName" type="xsd:string"/>
+            <xs:element name="MetadataArray" type="na:MetadataArray"/>
           </xs:all>
         </xs:complexType>
       </xs:element>
-      <xs:element name="cloneLunResult">
+      <xs:element name="CloneLunResult">
         <xs:complexType>
           <xs:all>
-            <xs:element name="lun" type="na:lun"/>
+            <xs:element name="Lun" type="na:Lun"/>
           </xs:all>
         </xs:complexType>
       </xs:element>
 
-      <xs:element name="mapLun">
+      <xs:element name="MapLun">
         <xs:complexType>
           <xs:all>
-            <xs:element name="handle" type="xsd:string"/>
-            <xs:element name="initiatorType" type="xsd:string"/>
-            <xs:element name="initiatorName" type="xsd:string"/>
+            <xs:element name="Handle" type="xsd:string"/>
+            <xs:element name="InitiatorType" type="xsd:string"/>
+            <xs:element name="InitiatorName" type="xsd:string"/>
           </xs:all>
         </xs:complexType>
       </xs:element>
-      <xs:element name="mapLunResult">
+      <xs:element name="MapLunResult">
         <xs:complexType>
           <xs:all/>
         </xs:complexType>
       </xs:element>
 
-      <xs:element name="unmapLun">
+      <xs:element name="UnmapLun">
         <xs:complexType>
           <xs:all>
-            <xs:element name="handle" type="xsd:string"/>
-            <xs:element name="initiatorType" type="xsd:string"/>
-            <xs:element name="initiatorName" type="xsd:string"/>
+            <xs:element name="Handle" type="xsd:string"/>
+            <xs:element name="InitiatorType" type="xsd:string"/>
+            <xs:element name="InitiatorName" type="xsd:string"/>
           </xs:all>
         </xs:complexType>
       </xs:element>
-      <xs:element name="unmapLunResult">
+      <xs:element name="UnmapLunResult">
         <xs:complexType>
           <xs:all/>
         </xs:complexType>
       </xs:element>
 
-      <xs:element name="listLuns">
-        <xs:complexType>
-          <xs:all/>
-        </xs:complexType>
-      </xs:element>
-      <xs:element name="listLunsResult">
+      <xs:element name="ListLuns">
         <xs:complexType>
           <xs:all>
-            <xs:element name="luns" type="na:lunArray"/>
+            <xs:element name="NameFilter" type="xsd:string" minOccurs="0"/>
+          </xs:all>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="ListLunsResult">
+        <xs:complexType>
+          <xs:all>
+            <xs:element name="LunArray" type="na:LunArray"/>
           </xs:all>
         </xs:complexType>
       </xs:element>
 
-      <xs:element name="getLunTargetDetails">
+      <xs:element name="GetLunTargetDetails">
         <xs:complexType>
           <xs:all>
-            <xs:element name="handle" type="xsd:string"/>
-            <xs:element name="initiatorType" type="xsd:string"/>
-            <xs:element name="initiatorName" type="xsd:string"/>
+            <xs:element name="Handle" type="xsd:string"/>
+            <xs:element name="InitiatorType" type="xsd:string"/>
+            <xs:element name="InitiatorName" type="xsd:string"/>
           </xs:all>
         </xs:complexType>
       </xs:element>
-      <xs:element name="getLunTargetDetailsResult">
+      <xs:element name="GetLunTargetDetailsResult">
         <xs:complexType>
           <xs:all>
-            <xs:element name="targetDetailsArray"
-            type="na:targetDetailsArray"/>
+            <xs:element name="TargetDetailsArray"
+              type="na:TargetDetailsArray"/>
           </xs:all>
         </xs:complexType>
       </xs:element>
 
-      <xs:complexType name="stringArray">
+      <xs:complexType name="Metadata">
         <xs:sequence>
-          <xs:element name="item" type="xs:string" minOccurs="0"
-          maxOccurs="unbounded" nillable="true"/>
+          <xs:element name="Key" type="xs:string"/>
+          <xs:element name="Value" type="xs:string"/>
         </xs:sequence>
       </xs:complexType>
-      <xs:complexType name="metadata">
+      <xs:complexType name="MetadataArray">
         <xs:sequence>
-          <xs:element name="key" type="xs:string"/>
-          <xs:element name="value" type="xs:string"/>
+          <xs:element name="Metadata" type="na:Metadata" minOccurs="0"
+            maxOccurs="unbounded" />
         </xs:sequence>
       </xs:complexType>
-      <xs:complexType name="metadataArray">
+      <xs:complexType name="Lun">
         <xs:sequence>
-          <xs:element name="metadata" type="na:metadata" minOccurs="0"
-          maxOccurs="unbounded" />
+          <xs:element name="Name" type="xs:string"/>
+          <xs:element name="Size" type="xs:long"/>
+          <xs:element name="Handle" type="xs:string"/>
+          <xs:element name="MetadataArray" type="na:MetadataArray"/>
         </xs:sequence>
       </xs:complexType>
-      <xs:complexType name="lun">
+      <xs:complexType name="LunArray">
         <xs:sequence>
-          <xs:element name="name" type="xs:string"/>
-          <xs:element name="size" type="xs:long"/>
-          <xs:element name="handle" type="xs:string"/>
-          <xs:element name="metadataArray" type="na:metadataArray"/>
+          <xs:element name="Lun" type="na:Lun" minOccurs="0"
+            maxOccurs="unbounded"/>
         </xs:sequence>
       </xs:complexType>
-      <xs:complexType name="lunArray">
+      <xs:complexType name="TargetDetail">
         <xs:sequence>
-          <xs:element name="lun" type="na:lun" minOccurs="0"
-          maxOccurs="unbounded" nillable="true"/>
+          <xs:element name="Address" type="xs:string"/>
+          <xs:element name="Port" type="xs:int"/>
+          <xs:element name="Portal" type="xs:int"/>
+          <xs:element name="Iqn" type="xs:string"/>
+          <xs:element name="LunNumber" type="xs:int"/>
         </xs:sequence>
       </xs:complexType>
-      <xs:complexType name="targetDetail">
+      <xs:complexType name="TargetDetailsArray">
         <xs:sequence>
-          <xs:element name="address" type="xs:string"/>
-          <xs:element name="port" type="xs:int"/>
-          <xs:element name="portal" type="xs:int"/>
-          <xs:element name="iqn" type="xs:string"/>
-          <xs:element name="lunNumber" type="xs:int"/>
-        </xs:sequence>
-      </xs:complexType>
-      <xs:complexType name="targetDetailsArray">
-        <xs:sequence>
-          <xs:element name="targetDetail" type="na:targetDetail"
-          maxOccurs="unbounded" nillable="true"/>
+          <xs:element name="TargetDetail" type="na:TargetDetail"
+            maxOccurs="unbounded"/>
         </xs:sequence>
       </xs:complexType>
      </xs:schema></types>"""
@@ -1172,8 +1168,8 @@ RESPONSE_PREFIX_CMODE = """<?xml version='1.0' encoding='UTF-8'?>
 
 RESPONSE_SUFFIX_CMODE = """</soapenv:Body></soapenv:Envelope>"""
 
-CMODE_APIS = ['provisionLun', 'destroyLun', 'cloneLun', 'mapLun', 'unmapLun',
-              'listLuns', 'getLunTargetDetails']
+CMODE_APIS = ['ProvisionLun', 'DestroyLun', 'CloneLun', 'MapLun', 'UnmapLun',
+              'ListLuns', 'GetLunTargetDetails']
 
 
 class FakeCMODEServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
@@ -1239,54 +1235,54 @@ class FakeCMODEServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             s.end_headers
             return
         api = tag[(2 + len(ntap_ns)):]
-        if 'provisionLun' == api:
-            body = """<ns:provisionLunResult xmlns:ns=
+        if 'ProvisionLun' == api:
+            body = """<ns:ProvisionLunResult xmlns:ns=
             "http://cloud.netapp.com/">
-            <lun><name>lun1</name><size>20</size>
-             <handle>1d9c006c-a406-42f6-a23f-5ed7a6dc33e3</handle>
-            <metadataArray><metadata><key>os</key>
-            <value>linux</value></metadata></metadataArray></lun>
-            </ns:provisionLunResult>"""
-        elif 'destroyLun' == api:
-            body = """<ns:destroyLunResult xmlns:ns="http://cloud.netapp.com/"
+            <Lun><Name>lun1</Name><Size>20</Size>
+             <Handle>1d9c006c-a406-42f6-a23f-5ed7a6dc33e3</Handle>
+            <MetadataArray><Metadata><Key>OsType</Key>
+            <Value>linux</Value></Metadata></MetadataArray></Lun>
+            </ns:ProvisionLunResult>"""
+        elif 'DestroyLun' == api:
+            body = """<ns:DestroyLunResult xmlns:ns="http://cloud.netapp.com/"
              />"""
-        elif 'cloneLun' == api:
-            body = """<ns:cloneLunResult xmlns:ns="http://cloud.netapp.com/">
-                     <lun><name>lun2</name><size>2</size>
-                     <handle>98ea1791d228453899d422b4611642c3</handle>
-                     <metadataArray><metadata><key>os</key>
-                     <value>linux</value></metadata>
-                     </metadataArray></lun></ns:cloneLunResult>"""
-        elif 'mapLun' == api:
-            body = """<ns1:mapLunResult xmlns:ns="http://cloud.netapp.com/"
+        elif 'CloneLun' == api:
+            body = """<ns:CloneLunResult xmlns:ns="http://cloud.netapp.com/">
+                     <Lun><Name>lun2</Name><Size>2</Size>
+                     <Handle>98ea1791d228453899d422b4611642c3</Handle>
+                     <MetadataArray><Metadata><Key>OsType</Key>
+                     <Value>linux</Value></Metadata>
+                     </MetadataArray></Lun></ns:CloneLunResult>"""
+        elif 'MapLun' == api:
+            body = """<ns1:MapLunResult xmlns:ns="http://cloud.netapp.com/"
              />"""
-        elif 'unmap' == api:
-            body = """<ns1:unmapLunResult xmlns:ns="http://cloud.netapp.com/"
+        elif 'Unmap' == api:
+            body = """<ns1:UnmapLunResult xmlns:ns="http://cloud.netapp.com/"
              />"""
-        elif 'listLuns' == api:
-            body = """<ns:listLunsResult xmlns:ns="http://cloud.netapp.com/">
-                 <luns>
-                 <lun>
-                 <name>lun1</name>
-                 <size>20</size>
-                 <handle>asdjdnsd</handle>
-                 <metadataArray />
-                 </lun>
-                 </luns>
-                 </ns:listLunsResult>"""
-        elif 'getLunTargetDetails' == api:
-            body = """<ns:getLunTargetDetailsResult
+        elif 'ListLuns' == api:
+            body = """<ns:ListLunsResult xmlns:ns="http://cloud.netapp.com/">
+                 <LunArray>
+                 <Lun>
+                 <Name>lun1</Name>
+                 <Size>20</Size>
+                 <Handle>asdjdnsd</Handle>
+                 <MetadataArray />
+                 </Lun>
+                 </LunArray>
+                 </ns:ListLunsResult>"""
+        elif 'GetLunTargetDetails' == api:
+            body = """<ns:GetLunTargetDetailsResult
             xmlns:ns="http://cloud.netapp.com/">
-                    <targetDetailsArray>
-                    <targetDetail>
-                     <address>1.2.3.4</address>
-                     <port>3260</port>
-                     <portal>1000</portal>
-                     <iqn>iqn.199208.com.netapp:sn.123456789</iqn>
-                     <lunNumber>0</lunNumber>
-                    </targetDetail>
-                    </targetDetailsArray>
-                    </ns:getLunTargetDetailsResult>"""
+                    <TargetDetailsArray>
+                    <TargetDetail>
+                     <Address>1.2.3.4</Address>
+                     <Port>3260</Port>
+                     <Portal>1000</Portal>
+                     <Iqn>iqn.199208.com.netapp:sn.123456789</Iqn>
+                     <LunNumber>0</LunNumber>
+                    </TargetDetail>
+                    </TargetDetailsArray>
+                    </ns:GetLunTargetDetailsResult>"""
         else:
             # Unknown API
             s.send_response(500)

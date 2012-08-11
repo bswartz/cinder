@@ -1068,10 +1068,10 @@ class NetAppCmodeISCSIDriver(driver.ISCSIDriver):
         Discovers the LUNs on the NetApp server.
         """
         self.lun_table = {}
-        luns = self.client.service.listLuns()
-        for lun in luns.lun:
-            discovered_lun = NetAppLun(lun.handle, lun.name, lun.size,
-                    self._create_dict_from_meta(lun.metadataArray))
+        luns = self.client.service.ListLuns()
+        for lun in luns.Lun:
+            discovered_lun = NetAppLun(lun.Handle, lun.Name, lun.Size,
+                    self._create_dict_from_meta(lun.MetadataArray))
             self._add_lun_to_table(discovered_lun)
         LOG.debug(_("Success getting LUN list from server"))
 
@@ -1085,25 +1085,25 @@ class NetAppCmodeISCSIDriver(driver.ISCSIDriver):
         else:
             size = str(int(volume['size']) * gigabytes)
         extra_args = {}
-        extra_args['osType'] = 'linux'
-        extra_args['qosType'] = self._get_qos_type(volume)
-        extra_args['container'] = volume['project_id']
-        extra_args['display'] = volume['display_name']
-        extra_args['description'] = volume['display_description']
-        extra_args['spaceReserved'] = True
+        extra_args['OsType'] = 'linux'
+        extra_args['QosType'] = self._get_qos_type(volume)
+        extra_args['Container'] = volume['project_id']
+        extra_args['Display'] = volume['display_name']
+        extra_args['Description'] = volume['display_description']
+        extra_args['SpaceReserved'] = True
         server = self.client.service
         metadata_array = self._create_metadata_list(extra_args)
-        lun = server.provisionLun(name=name, size=size,
-                                  metadataArray=metadata_array)
+        lun = server.ProvisionLun(Name=name, Size=size,
+                                  MetadataArray=metadata_array)
         LOG.debug(_("Created LUN with name %s") % name)
-        self._add_lun_to_table(NetAppLun(lun.handle, lun.name,
-             lun.size, self._create_dict_from_meta(lun.metadataArray)))
+        self._add_lun_to_table(NetAppLun(lun.Handle, lun.Name,
+             lun.Size, self._create_dict_from_meta(lun.MetadataArray)))
 
     def delete_volume(self, volume):
         """Driver entry point for destroying existing volumes."""
         name = volume['name']
         handle = self._get_lun_handle(name)
-        self.client.service.destroyLun(handle=handle)
+        self.client.service.DestroyLun(Handle=handle)
         LOG.debug(_("Destroyed LUN %s") % handle)
         self.lun_table.pop(name)
 
@@ -1139,38 +1139,38 @@ class NetAppCmodeISCSIDriver(driver.ISCSIDriver):
         initiator_name = connector['initiator']
         handle = volume['provider_location']
         server = self.client.service
-        server.mapLun(handle=handle, initiatorType="iscsi",
-                      initiatorName=initiator_name)
+        server.MapLun(Handle=handle, InitiatorType="iscsi",
+                      InitiatorName=initiator_name)
         msg = _("Mapped LUN %(handle)s to the initiator %(initiator_name)s")
         LOG.debug(msg % locals())
 
-        target_details_array = server.getLunTargetDetails(handle=handle,
-                initiatorType="iscsi", initiatorName=initiator_name)
+        target_details_array = server.GetLunTargetDetails(Handle=handle,
+                InitiatorType="iscsi", InitiatorName=initiator_name)
         msg = _("Succesfully fetched target details for LUN %(handle)s and "
                 "initiator %(initiator_name)s")
         LOG.debug(msg % locals())
 
         target_details = None
-        for details in target_details_array.targetDetail:
+        for details in target_details_array.TargetDetail:
             target_details = details
             break
         if not target_details:
             msg = _('Failed to get LUN target details for the LUN %s')
             raise exception.VolumeBackendAPIException(data=msg % handle)
-        if not target_details.address and target_details.port:
+        if not target_details.Address and target_details.Port:
             msg = _('Failed to get target portal for the LUN %s')
             raise exception.VolumeBackendAPIException(data=msg % handle)
-        iqn = target_details.iqn
+        iqn = target_details.Iqn
         if not iqn:
             msg = _('Failed to get target IQN for the LUN %s')
             raise exception.VolumeBackendAPIException(data=msg % handle)
 
         properties = {}
         properties['target_discovered'] = False
-        (address, port) = (target_details.address, target_details.port)
+        (address, port) = (target_details.Address, target_details.Port)
         properties['target_portal'] = '%s:%s' % (address, port)
         properties['target_iqn'] = iqn
-        properties['target_lun'] = target_details.lunNumber
+        properties['target_lun'] = target_details.LunNumber
         properties['volume_id'] = volume['id']
 
         auth = volume['provider_auth']
@@ -1193,8 +1193,8 @@ class NetAppCmodeISCSIDriver(driver.ISCSIDriver):
         """
         initiator_name = connector['initiator']
         handle = volume['provider_location']
-        self.client.service.unmapLun(handle=handle, initiatorType="iscsi",
-                                     initiatorName=initiator_name)
+        self.client.service.UnmapLun(Handle=handle, InitiatorType="iscsi",
+                                     InitiatorName=initiator_name)
         msg = _("Unmapped LUN %(handle)s from the initiator "
                 "%(initiator_name)s")
         LOG.debug(msg % locals())
@@ -1208,13 +1208,13 @@ class NetAppCmodeISCSIDriver(driver.ISCSIDriver):
         vol_name = snapshot['volume_name']
         snapshot_name = snapshot['name']
         lun = self.lun_table[vol_name]
-        extra_args = {'spaceReserved': False}
+        extra_args = {'SpaceReserved': False}
         self._clone_lun(lun.handle, snapshot_name, extra_args)
 
     def delete_snapshot(self, snapshot):
         """Driver entry point for deleting a snapshot."""
         handle = self._get_lun_handle(snapshot['name'])
-        self.client.service.destroyLun(handle=handle)
+        self.client.service.DestroyLun(Handle=handle)
         LOG.debug(_("Destroyed LUN %s") % handle)
 
     def create_volume_from_snapshot(self, volume, snapshot):
@@ -1227,12 +1227,12 @@ class NetAppCmodeISCSIDriver(driver.ISCSIDriver):
         lun = self.lun_table[snapshot_name]
         new_name = volume['name']
         extra_args = {}
-        extra_args['osType'] = 'linux'
-        extra_args['qosType'] = self._get_qos_type(volume)
-        extra_args['container'] = volume['project_id']
-        extra_args['display'] = volume['display_name']
-        extra_args['description'] = volume['display_description']
-        extra_args['spaceReserved'] = True
+        extra_args['OsType'] = 'linux'
+        extra_args['QosType'] = self._get_qos_type(volume)
+        extra_args['Container'] = volume['project_id']
+        extra_args['Display'] = volume['display_name']
+        extra_args['Description'] = volume['display_description']
+        extra_args['SpaceReserved'] = True
         self._clone_lun(lun.handle, new_name, extra_args)
 
     def check_for_export(self, context, volume_id):
@@ -1259,21 +1259,21 @@ class NetAppCmodeISCSIDriver(driver.ISCSIDriver):
         """Clone LUN with the given handle to the new name."""
         server = self.client.service
         metadata = self._create_metadata_list(extra_args)
-        lun = server.cloneLun(handle=handle, newName=new_name,
-                              metadataArray=metadata)
+        lun = server.CloneLun(Handle=handle, NewName=new_name,
+                              MetadataArray=metadata)
         LOG.debug(_("Cloned LUN with new name %s") % new_name)
-        self._add_lun_to_table(NetAppLun(lun.handle, lun.name,
-             lun.size, self._create_dict_from_meta(lun.metadataArray)))
+        self._add_lun_to_table(NetAppLun(lun.Handle, lun.Name,
+             lun.Size, self._create_dict_from_meta(lun.MetadataArray)))
 
     def _create_metadata_list(self, extra_args):
         """Creates metadataArray from kwargs."""
-        metadataArray = self.client.factory.create("metadataArray")
+        metadata_array = self.client.factory.create("MetadataArray")
         for key in extra_args.keys():
-            meta = self.client.factory.create("metadata")
-            meta.key = key
-            meta.value = extra_args[key]
-            metadataArray.metadata.append(meta)
-        return metadataArray
+            meta = self.client.factory.create("Metadata")
+            meta.Key = key
+            meta.Value = extra_args[key]
+            metadata_array.Metadata.append(meta)
+        return metadata_array
 
     def _get_lun_handle(self, name):
         """Get the details for a LUN from our cache table."""
@@ -1285,8 +1285,8 @@ class NetAppCmodeISCSIDriver(driver.ISCSIDriver):
     def _create_dict_from_meta(self, metadata_array):
         """Creates dictionary from metadata array."""
         meta_dict = {}
-        if not hasattr(metadata_array, 'metadata'):
+        if not hasattr(metadata_array, 'Metadata'):
             return meta_dict
-        for meta in metadata_array.metadata:
-            meta_dict[meta.key] = meta.value
+        for meta in metadata_array.Metadata:
+            meta_dict[meta.Key] = meta.Value
         return meta_dict
