@@ -29,9 +29,7 @@ from cinder.openstack.common import log as logging
 from cinder import test
 from cinder.volume import netapp
 
-
-LOG = logging.getLogger(__name__)
-
+LOG = logging.getLogger("cinder.volume.driver")
 
 WSDL_HEADER = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <definitions xmlns="http://schemas.xmlsoap.org/wsdl/"
