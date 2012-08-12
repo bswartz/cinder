@@ -1007,7 +1007,8 @@ targetNamespace="http://cloud.netapp.com/">
           <xs:all>
             <xs:element name="Name" type="xs:string"/>
             <xs:element name="Size" type="xsd:long"/>
-            <xs:element name="Metadata" type="na:Metadata" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="Metadata" type="na:Metadata" minOccurs="0"
+              maxOccurs="unbounded"/>
           </xs:all>
         </xs:complexType>
       </xs:element>
@@ -1037,7 +1038,8 @@ targetNamespace="http://cloud.netapp.com/">
           <xs:all>
             <xs:element name="Handle" type="xsd:string"/>
             <xs:element name="NewName" type="xsd:string"/>
-            <xs:element name="Metadata" type="na:Metadata" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="Metadata" type="na:Metadata" minOccurs="0"
+              maxOccurs="unbounded"/>
           </xs:all>
         </xs:complexType>
       </xs:element>
@@ -1089,7 +1091,8 @@ targetNamespace="http://cloud.netapp.com/">
       <xs:element name="ListLunsResult">
         <xs:complexType>
           <xs:all>
-            <xs:element name="Lun" type="na:Lun" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="Lun" type="na:Lun" minOccurs="0"
+              maxOccurs="unbounded"/>
           </xs:all>
         </xs:complexType>
       </xs:element>
@@ -1106,7 +1109,8 @@ targetNamespace="http://cloud.netapp.com/">
       <xs:element name="GetLunTargetDetailsResult">
         <xs:complexType>
           <xs:all>
-            <xs:element name="TargetDetails" type="na:TargetDetails" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="TargetDetails" type="na:TargetDetails"
+              minOccurs="0" maxOccurs="unbounded"/>
           </xs:all>
         </xs:complexType>
       </xs:element>
@@ -1123,7 +1127,8 @@ targetNamespace="http://cloud.netapp.com/">
           <xs:element name="Name" type="xs:string"/>
           <xs:element name="Size" type="xs:long"/>
           <xs:element name="Handle" type="xs:string"/>
-          <xs:element name="Metadata" type="na:Metadata" minOccurs="0" maxOccurs="unbounded"/>
+          <xs:element name="Metadata" type="na:Metadata" minOccurs="0"
+            maxOccurs="unbounded"/>
         </xs:sequence>
       </xs:complexType>
 
