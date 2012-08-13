@@ -14,8 +14,10 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+"""
+Volume driver for NetApp NFS storage.
+"""
 
-""" Volume driver for using NetApp as volumes storage. Nova volume part """
 import os
 import time
 import suds
@@ -24,33 +26,21 @@ from suds.sax import text
 from cinder import exception
 from cinder import flags
 from cinder.openstack.common import cfg
-from cinder import log as logging
+from cinder.openstack.common import log as logging
 from cinder.volume import nfs
+from cinder.volume.netapp import netapp_opts
 
-LOG = logging.getLogger(__name__)
+LOG = logging.getLogger("cinder.volume.driver")
 
-netapp_opts = [
-    cfg.StrOpt('netapp_nfs_wsdl_url',
-               default=None,
-               help='URL of the WSDL file for the DFM server'),
-    cfg.StrOpt('netapp_nfs_login',
-               default=None,
-               help='User name for the DFM server'),
-    cfg.StrOpt('netapp_nfs_password',
-               default=None,
-               help='Password for the DFM server'),
-    cfg.StrOpt('netapp_nfs_server_hostname',
-               default=None,
-               help='Hostname for the DFM server'),
-    cfg.IntOpt('netapp_nfs_server_port',
-               default=8088,
-               help='Port number for the DFM server'),
+netapp_nfs_opts = [
     cfg.IntOpt('synchronous_snapshot_create',
                default=0,
                help='Does snapshot creation call returns immediately')
     ]
+
 FLAGS = flags.FLAGS
 FLAGS.register_opts(netapp_opts)
+FLAGS.register_opts(netapp_nfs_opts)
 
 
 class NetAppNFSDriver(nfs.NfsDriver):
@@ -109,11 +99,11 @@ class NetAppNFSDriver(nfs.NfsDriver):
     def _check_dfm_flags():
         """Raises error if any required configuration flag for OnCommand proxy
         is missing."""
-        required_flags = ['netapp_nfs_wsdl_url',
-                          'netapp_nfs_login',
-                          'netapp_nfs_password',
-                          'netapp_nfs_server_hostname',
-                          'netapp_nfs_server_port']
+        required_flags = ['netapp_wsdl_url',
+                          'netapp_login',
+                          'netapp_password',
+                          'netapp_server_hostname',
+                          'netapp_server_port']
         for flag in required_flags:
             if not getattr(FLAGS, flag, None):
                 raise exception.CinderException(_('%s is not set') % flag)
@@ -121,12 +111,12 @@ class NetAppNFSDriver(nfs.NfsDriver):
     @staticmethod
     def _get_client():
         """Creates SOAP _client for ONTAP-7 DataFabric Service."""
-        client = suds.client.Client(FLAGS.netapp_nfs_wsdl_url,
-                                    username=FLAGS.netapp_nfs_login,
-                                    password=FLAGS.netapp_nfs_password)
+        client = suds.client.Client(FLAGS.netapp_wsdl_url,
+                                    username=FLAGS.netapp_login,
+                                    password=FLAGS.netapp_password)
         soap_url = 'http://%s:%s/apis/soap/v1' % (
-                                          FLAGS.netapp_nfs_server_hostname,
-                                          FLAGS.netapp_nfs_server_port)
+                                          FLAGS.netapp_server_hostname,
+                                          FLAGS.netapp_server_port)
         client.set_options(location=soap_url)
 
         return client

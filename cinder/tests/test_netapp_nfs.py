@@ -19,8 +19,12 @@ from cinder import context
 from cinder import test
 from cinder import exception
 
-from cinder.volume import netapp_nfs, nfs
-from mox import IsA, IgnoreArg, MockObject
+from cinder.volume import netapp_nfs
+from cinder.volume import netapp
+from cinder.volume import nfs
+from mox import IsA
+from mox import IgnoreArg
+from mox import MockObject
 
 import mox
 import suds
@@ -75,11 +79,11 @@ class NetappNfsDriverTestCase(test.TestCase):
         mox = self._mox
         drv = self._driver
         required_flags = [
-                'netapp_nfs_wsdl_url',
-                'netapp_nfs_login',
-                'netapp_nfs_password',
-                'netapp_nfs_server_hostname',
-                'netapp_nfs_server_port'
+                'netapp_wsdl_url',
+                'netapp_login',
+                'netapp_password',
+                'netapp_server_hostname',
+                'netapp_server_port'
             ]
 
         # check exception raises when flags are not set
@@ -88,7 +92,7 @@ class NetappNfsDriverTestCase(test.TestCase):
 
         # set required flags
         for flag in required_flags:
-            setattr(netapp_nfs.FLAGS, flag, 'val')
+            setattr(netapp.FLAGS, flag, 'val')
 
         mox.StubOutWithMock(nfs.NfsDriver, 'check_for_setup_error')
         nfs.NfsDriver.check_for_setup_error()
@@ -100,7 +104,7 @@ class NetappNfsDriverTestCase(test.TestCase):
 
         # restore initial FLAGS
         for flag in required_flags:
-            delattr(netapp_nfs.FLAGS, flag)
+            delattr(netapp.FLAGS, flag)
 
     def test_do_setup(self):
         mox = self._mox
