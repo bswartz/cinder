@@ -21,11 +21,11 @@ import ctypes
 
 from cinder import flags
 from cinder.openstack.common import cfg
-from cinder import log as logging
+from cinder.openstack.common import log as logging
 from cinder.volume import driver
 from cinder import exception
 
-LOG = logging.getLogger(__name__)
+LOG = logging.getLogger("cinder.volume.driver")
 
 volume_opts = [
     cfg.StrOpt('nfs_shares_config',
