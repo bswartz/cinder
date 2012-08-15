@@ -121,8 +121,7 @@ class NfsDriverTestCase(test.TestCase):
 
         mox.StubOutWithMock(drv, '_execute')
         drv._execute('mount', '-t', 'nfs', self.TEST_NFS_EXPORT1,
-                     self.TEST_MNT_POINT, run_as_root=True,
-                     check_exit_code=True)
+                     self.TEST_MNT_POINT, run_as_root=True)
 
         mox.ReplayAll()
 
@@ -141,8 +140,7 @@ class NfsDriverTestCase(test.TestCase):
 
         mox.StubOutWithMock(drv, '_execute')
         drv._execute('mount', '-t', 'nfs', self.TEST_NFS_EXPORT1,
-                     self.TEST_MNT_POINT, run_as_root=True,
-                     check_exit_code=True).\
+                     self.TEST_MNT_POINT, run_as_root=True).\
             AndRaise(ProcessExecutionError(
                         stderr='is busy or already mounted'))
 
@@ -163,8 +161,7 @@ class NfsDriverTestCase(test.TestCase):
 
         mox.StubOutWithMock(drv, '_execute')
         drv._execute('mount', '-t', 'nfs', self.TEST_NFS_EXPORT1,
-                     self.TEST_MNT_POINT, run_as_root=True,
-                     check_exit_code=True).\
+                     self.TEST_MNT_POINT, run_as_root=True).\
         AndRaise(ProcessExecutionError(stderr='is busy or already mounted'))
 
         mox.ReplayAll()
@@ -184,10 +181,8 @@ class NfsDriverTestCase(test.TestCase):
         drv._path_exists(self.TEST_MNT_POINT).AndReturn(False)
 
         mox.StubOutWithMock(drv, '_execute')
-        drv._execute('mkdir', '-p', self.TEST_MNT_POINT, run_as_root=True,
-                     check_exit_code=True)
-        drv._execute(*([IgnoreArg()] * 5), run_as_root=IgnoreArg(),
-                     check_exit_code=IgnoreArg())
+        drv._execute('mkdir', '-p', self.TEST_MNT_POINT)
+        drv._execute(*([IgnoreArg()] * 5), run_as_root=IgnoreArg())
 
         mox.ReplayAll()
 
@@ -204,8 +199,7 @@ class NfsDriverTestCase(test.TestCase):
         drv._path_exists(self.TEST_MNT_POINT).AndReturn(True)
 
         mox.StubOutWithMock(drv, '_execute')
-        drv._execute(*([IgnoreArg()] * 5), run_as_root=IgnoreArg(),
-                     check_exit_code=IgnoreArg())
+        drv._execute(*([IgnoreArg()] * 5), run_as_root=IgnoreArg())
 
         mox.ReplayAll()
 
@@ -561,8 +555,7 @@ class NfsDriverTestCase(test.TestCase):
         drv._path_exists(self.TEST_LOCAL_PATH).AndReturn(True)
 
         mox.StubOutWithMock(drv, '_execute')
-        drv._execute('rm', '-f', self.TEST_LOCAL_PATH, run_as_root=True,
-                     check_exit_code=True)
+        drv._execute('rm', '-f', self.TEST_LOCAL_PATH, run_as_root=True)
 
         mox.ReplayAll()
 

@@ -121,9 +121,8 @@ class NfsDriver(driver.VolumeDriver):
             return True
 
 #        self._execute('dd', 'if=/dev/zero', 'of=%s' % mounted_volume_path,
-#                      'bs=1M', run_as_root=True, check_exit_code=True)
-        self._execute('rm', '-f', mounted_path, run_as_root=True,
-                      check_exit_code=True)
+#                      'bs=1M', run_as_root=True)
+        self._execute('rm', '-f', mounted_path, run_as_root=True)
 
     def ensure_export(self, ctx, volume):
         """Synchronously recreates an export for a logical volume."""
@@ -166,7 +165,7 @@ class NfsDriver(driver.VolumeDriver):
     def _create_sparsed_file(self, path, size):
         """Creates file with 0 disk usage"""
         self._execute('truncate', '-s', self._sizestr(size),
-                      path, run_as_root=True, check_exit_code=True)
+                      path, run_as_root=True)
 
     def _create_regular_file(self, path, size):
         """Creates regular file of given size. Takes a lot of time for large
@@ -181,12 +180,11 @@ class NfsDriver(driver.VolumeDriver):
         self._execute('dd', 'if=/dev/zero', 'of=%s' % path,
                       'bs=%dM' % block_size_mb,
                       'count=%d' % block_count,
-                      run_as_root=True, check_exit_code=True)
+                      run_as_root=True)
 
     def _set_rw_permissions_for_all(self, path):
         """Sets 666 permissions for the path"""
-        self._execute('chmod', 'ugo+rw', path,
-                      run_as_root=True, check_exit_code=True)
+        self._execute('chmod', 'ugo+rw', path, run_as_root=True)
 
     def _do_create_volume(self, volume):
         """Create a volume on given nfs_share
@@ -284,12 +282,11 @@ class NfsDriver(driver.VolumeDriver):
     def _mount_nfs(self, nfs_share, mount_path, ensure=False):
         """Mount NFS share to mount path"""
         if not self._path_exists(mount_path):
-            self._execute('mkdir', '-p', mount_path, run_as_root=True,
-                          check_exit_code=True)
+            self._execute('mkdir', '-p', mount_path)
 
         try:
             self._execute('mount', '-t', 'nfs', nfs_share, mount_path,
-                          run_as_root=True, check_exit_code=True)
+                          run_as_root=True)
         except exception.ProcessExecutionError as exc:
             if ensure and 'already mounted' in exc.stderr:
                 LOG.warn(_("%s is already mounted"), nfs_share)
