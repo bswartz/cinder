@@ -949,3 +949,15 @@ class CouldNotFetchImage(CinderException):
 class VolumeBackendAPIException(CinderException):
     message = _("Bad or unexpected response from the storage volume "
                 "backend API: %(data)s")
+
+
+class NfsException(CinderException):
+    message = _("Unknown NFS exception")
+
+
+class NfsNoSharesMounted(NfsException):
+    message = _("There is no any mounted NFS share found")
+
+
+class NfsNoSuitableShareFound(NfsException):
+    message = _("There is no share which can host %(volume_size)sG")
