@@ -33,16 +33,16 @@ LOG = logging.getLogger(__name__)
 FLAGS = flags.FLAGS
 
 
-def _translate_snapshot_detail_view(context, snapshot):
+def _translate_snapshot_detail_view(context, snapshot, share):
     """Maps keys for snapshots details view."""
 
-    d = _translate_snapshot_summary_view(context, snapshot)
+    d = _translate_snapshot_summary_view(context, snapshot, share)
 
     # NOTE(gagupta): No additional data / lookups at the moment
     return d
 
 
-def _translate_snapshot_summary_view(context, snapshot):
+def _translate_snapshot_summary_view(context, snapshot, share):
     """Maps keys for snapshots summary view."""
     d = {}
 
@@ -54,6 +54,7 @@ def _translate_snapshot_summary_view(context, snapshot):
     d['status'] = snapshot['status']
     d['size'] = snapshot['volume_size']
 
+    d['source_type'] = 'volume' if share is None else share.proto
     return d
 
 
@@ -65,6 +66,7 @@ def make_snapshot(elem):
     elem.set('display_name')
     elem.set('display_description')
     elem.set('volume_id')
+    elem.set('source_type')
 
 
 class SnapshotTemplate(xmlutil.TemplateBuilder):
@@ -96,11 +98,17 @@ class SnapshotsController(object):
         context = req.environ['cinder.context']
 
         try:
-            vol = self.volume_api.get_snapshot(context, id)
+            snap = self.volume_api.get_snapshot(context, id)
+            try:
+                share, _ = self.volume_api.get_share_volume(context,
+                                                            snap['volume_id'])
+            except exception.NotFound:
+                share = None
         except exception.NotFound:
             raise exc.HTTPNotFound()
 
-        return {'snapshot': _translate_snapshot_detail_view(context, vol)}
+        return {'snapshot': _translate_snapshot_detail_view(context, snap,
+                                                            share)}
 
     def delete(self, req, id):
         """Delete a snapshot."""
@@ -134,8 +142,13 @@ class SnapshotsController(object):
 
         snapshots = self.volume_api.get_all_snapshots(context,
                                                       search_opts=search_opts)
+        svlist = self.volume_api.get_all_shares_volumes(context)
+        shares = dict([(sv[0]['volume_id'], sv[0]) for sv in svlist])
+
         limited_list = common.limited(snapshots, req)
-        res = [entity_maker(context, snapshot) for snapshot in limited_list]
+        res = [entity_maker(context, snapshot,
+                            shares.get(snapshot['volume_id'], None))
+               for snapshot in limited_list]
         return {'snapshots': res}
 
     @wsgi.serializers(xml=SnapshotTemplate)
@@ -163,8 +176,11 @@ class SnapshotsController(object):
                                         volume,
                                         snapshot.get('display_name'),
                                         snapshot.get('display_description'))
-
-        retval = _translate_snapshot_detail_view(context, new_snapshot)
+        try:
+            share, vol = self.volume_api.get_share_volume(context, volume_id)
+        except exception.NotFound:
+            share = None
+        retval = _translate_snapshot_detail_view(context, new_snapshot, share)
 
         return {'snapshot': retval}
 

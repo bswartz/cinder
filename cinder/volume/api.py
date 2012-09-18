@@ -81,7 +81,7 @@ class API(base.Base):
 
     def create(self, context, size, name, description, snapshot=None,
                 image_id=None, volume_type=None, metadata=None,
-                availability_zone=None):
+                availability_zone=None, cast=True):
         check_policy(context, 'create')
         if snapshot is not None:
             if snapshot['status'] != "available":
@@ -144,13 +144,14 @@ class API(base.Base):
             'metadata': metadata,
             }
         volume = self.db.volume_create(context, options)
-        rpc.cast(context,
-                 FLAGS.scheduler_topic,
-                 {"method": "create_volume",
-                  "args": {"topic": FLAGS.volume_topic,
-                           "volume_id": volume['id'],
-                           "snapshot_id": volume['snapshot_id'],
-                           "image_id": image_id}})
+        if cast:
+            rpc.cast(context,
+                     FLAGS.scheduler_topic,
+                     {"method": "create_volume",
+                      "args": {"topic": FLAGS.volume_topic,
+                               "volume_id": volume['id'],
+                               "snapshot_id": volume['snapshot_id'],
+                               "image_id": image_id}})
         return volume
 
     def _cast_create_volume(self, context, volume_id, snapshot_id):
@@ -181,12 +182,12 @@ class API(base.Base):
                                "snapshot_id": snapshot_id}})
 
     @wrap_check_policy
-    def delete(self, context, volume):
+    def delete(self, context, volume, cast=True):
         volume_id = volume['id']
         if not volume['host']:
             # NOTE(vish): scheduling failed, so delete it
             self.db.volume_destroy(context, volume_id)
-            return
+            return False
         if volume['status'] not in ["available", "error"]:
             msg = _("Volume status must be available or error")
             raise exception.InvalidVolume(reason=msg)
@@ -200,10 +201,11 @@ class API(base.Base):
         self.db.volume_update(context, volume_id, {'status': 'deleting',
                                                    'terminated_at': now})
         host = volume['host']
-        rpc.cast(context,
-                 rpc.queue_get_for(context, FLAGS.volume_topic, host),
-                 {"method": "delete_volume",
-                  "args": {"volume_id": volume_id}})
+        if cast:
+            rpc.cast(context,
+                     rpc.queue_get_for(context, FLAGS.volume_topic, host),
+                     {"method": "delete_volume",
+                      "args": {"volume_id": volume_id}})
 
     @wrap_check_policy
     def update(self, context, volume, fields):
@@ -472,3 +474,114 @@ class API(base.Base):
                "image_name": recv_metadata.get('name', None)
         }
         return response
+
+    def create_share(self, context, proto, size, name, description,
+                     snapshot=None, volume_type=None, metadata=None,
+                     availability_zone=None):
+        """Create new share"""
+        volume = self.create(context, size, name, description, snapshot,
+                             volume_type, metadata, availability_zone,
+                             cast=False)
+        snapshot_id = snapshot['id'] if snapshot is not None else None
+
+        options = {
+            'proto': proto,
+            'volume_id': volume['id']
+            }
+
+        share = self.db.share_create(context, options)
+        rpc.cast(context,
+                 FLAGS.scheduler_topic,
+                 {"method": "create_share",
+                  "args": {"topic": FLAGS.volume_topic,
+                           'volume_id': volume['id'],
+                           "snapshot_id": snapshot_id}})
+        return share, volume
+
+    def delete_share(self, context, share, volume):
+        """Delete share"""
+        if self.delete(context, volume, cast=False):
+            host = volume['host']
+            rpc.cast(context,
+                     rpc.queue_get_for(context, FLAGS.volume_topic, host),
+                     {"method": "delete_share",
+                      "args": {"volume_id": volume['id']}})
+            return True
+        else:
+            self.db.share_delete(context, share['id'])
+            return False
+
+    def get_share_volume(self, context, volume_id):
+        rv = self.db.share_volume_get(context, volume_id)
+        check_policy(context, 'get', rv[1])
+        return rv
+
+    def get_all_shares_volumes(self, context, search_opts={}):
+        check_policy(context, 'get_all')
+        if context.is_admin:
+            return self.db.share_volume_get_all(context)
+        else:
+            return self.db.share_volume_get_all_by_project(context,
+                                                           context.project_id)
+
+    def access_allow(self, ctx, volume, access_type, access_to):
+        """ Allow access to volume (share type) """
+        if not volume['host']:
+            msg = "Share host is None"
+            raise exception.InvalidVolume(reason=msg)
+        if volume['status'] not in ["available"]:
+            msg = "Share status must be available"
+            raise exception.InvalidVolume(reason=msg)
+        check_policy(ctx, 'access_allow')
+        host = volume['host']
+        values = {
+                  'volume_id': volume['id'],
+                  'access_type': access_type,
+                  'access_to': access_to}
+        ref = self.db.share_access_create(ctx, values)
+        rpc.cast(ctx,
+                 rpc.queue_get_for(ctx, FLAGS.volume_topic, host),
+                 {"method": "allow_access", "args": {"access_id": ref["id"]}})
+        return ref
+
+    def access_deny(self, ctx, volume, access):
+        """ Deny access to volume (share type) """
+        check_policy(ctx, 'access_deny')
+        #First check state of the target share(volume)
+        if not volume['host']:
+            msg = "Volume host is None"
+            raise exception.InvalidVolume(reason=msg)
+        if volume['status'] not in ["available"]:
+            msg = "Volume status must be available"
+            raise exception.InvalidVolume(reason=msg)
+
+        #Then check state of the access rule
+        if access['state'] == access.STATE_ERROR:
+            self.db.share_access_delete(ctx, access["id"])
+        elif access['state'] == access.STATE_ACTIVE:
+            self.db.share_access_update(ctx, access["id"],
+                    {'state': access.STATE_DELETING})
+            host = volume['host']
+            rpc.cast(ctx,
+                     rpc.queue_get_for(ctx, FLAGS.volume_topic, host),
+                     {"method": "deny_access",
+                      "args": {"access_id": access["id"]}})
+        else:
+            msg = "Access policy should be active or in error state"
+            raise exception.InvalidShareAccess(reason=msg)
+            #update share state and send message to manager
+
+    def access_get_all(self, context, volume):
+        """Returns all access rules for volume"""
+        check_policy(context, 'access_get_all')
+        rules = self.db.share_access_get_all_for_share(context, volume['id'])
+        return [{'id': rule.id,
+                 'access_type': rule.access_type,
+                 'access_to': rule.access_to,
+                 'state': rule.state} for rule in rules]
+
+    def access_get(self, context, access_id):
+        """Returns access rule with the id"""
+        check_policy(context, 'access_get')
+        rule = self.db.share_access_get(context, access_id)
+        return rule

@@ -59,6 +59,9 @@ db_opts = [
     cfg.StrOpt('volume_name_template',
                default='volume-%s',
                help='Template string to be used to generate instance names'),
+    cfg.StrOpt('share_name_template',
+               default='share-%s',
+               help='Template string to be used to generate volume names'),
     cfg.StrOpt('snapshot_name_template',
                default='snapshot-%s',
                help='Template string to be used to generate snapshot names'),
@@ -618,3 +621,77 @@ def quota_destroy_all_by_project(context, project_id):
 def reservation_expire(context):
     """Roll back any expired reservations."""
     return IMPL.reservation_expire(context)
+
+
+####################
+
+
+def share_create(context, values):
+    """Create new share"""
+    return IMPL.share_create(context, values)
+
+
+def share_update(context, share_id, values):
+    """Update share fields"""
+    return IMPL.share_update(context, share_id, values)
+
+
+def share_get(context, share_id):
+    """get share by id"""
+    return IMPL.share_get(context, share_id)
+
+
+def share_get_by_volume_id(context, volume_id):
+    return IMPL.share_get_by_volume_id(context, volume_id)
+
+
+def share_volume_get(context, volume_id):
+    """get share by id"""
+    return IMPL.share_volume_get(context, volume_id)
+
+
+def share_volume_get_all(context):
+    """Get all shares"""
+    return IMPL.share_volume_get_all(context)
+
+
+def shares_volume_get_all_by_host(context, host):
+    return IMPL.shares_volume_get_all_by_host(context, host)
+
+
+def share_volume_get_all_by_project(context, project_id):
+    """Returns all shares with given project ID"""
+    return IMPL.share_volume_get_all_by_project(context, project_id)
+
+
+def share_delete(context, volume_id):
+    """Delete share"""
+    return IMPL.share_delete(context, volume_id)
+
+
+###################
+
+
+def share_access_create(context, values):
+    """Allow access to share (volumes of special type)"""
+    return IMPL.share_access_create(context, values)
+
+
+def share_access_get(context, access_id):
+    """Allow access to share (volumes of special type)"""
+    return IMPL.share_access_get(context, access_id)
+
+
+def share_access_get_all_for_share(context, volume_id):
+    """Allow access to share (volumes of special type)"""
+    return IMPL.share_access_get_all_for_share(context, volume_id)
+
+
+def share_access_delete(context, access_id):
+    """Deny access to share (volumes of special type)"""
+    return IMPL.share_access_delete(context, access_id)
+
+
+def share_access_update(context, access_id, values):
+    """Update access record"""
+    return IMPL.share_access_update(context, access_id, values)

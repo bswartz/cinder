@@ -949,3 +949,19 @@ class CouldNotFetchImage(CinderException):
 class VolumeBackendAPIException(CinderException):
     message = _("Bad or unexpected response from the storage volume "
                 "backend API: %(data)s")
+
+
+class InvalidShare(CinderException):
+    message = _("Invalid share") + ": %(reason)s"
+
+
+class ShareAccessNotFound(NotFound):
+    message = _("Access_id %(access_id)s doesn't found")
+
+
+class ShareAccessExists(Duplicate):
+    message = _("Share access exists")
+
+
+class InvalidShareAccess(CinderException):
+    message = _("Invalid access_rule") + ": %(reason)s"

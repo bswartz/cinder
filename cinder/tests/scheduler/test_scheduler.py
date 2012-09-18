@@ -19,14 +19,17 @@
 Tests For Scheduler
 """
 
+from mox import IsA
 
 from cinder import context
 from cinder import db
+from cinder import exception
 from cinder import flags
 from cinder.openstack.common import rpc
 from cinder.openstack.common import timeutils
 from cinder.scheduler import driver
 from cinder.scheduler import manager
+from cinder.scheduler import simple
 from cinder import test
 from cinder import utils
 
@@ -318,3 +321,95 @@ class SchedulerDriverModuleTestCase(test.TestCase):
         self.mox.ReplayAll()
         driver.cast_to_host(self.context, topic, host, method,
                 update_db=False, **fake_kwargs)
+
+
+class SimpleSchedulerSharesTestCase(test.TestCase):
+    """Test case for simple scheduler create share method"""
+    driver = simple.SimpleScheduler()
+
+    def setUp(self):
+        super(SimpleSchedulerSharesTestCase, self).setUp()
+        self.context = context.RequestContext('fake_user', 'fake_project')
+        self.admin_context = context.RequestContext('fake_admin_user',
+            'fake_project')
+        self.admin_context.is_admin = True
+
+    def test_create_share_if_two_services_up(self):
+        volume_id = 'fake'
+        fake_volume = {'id': volume_id,
+                       'size': 1}
+
+        fake_service_1 = {'disabled': False,
+                         'host': 'fake_host1'}
+
+        fake_service_2 = {'disabled': False,
+                         'host': 'fake_host2'}
+
+        fake_result = [(fake_service_1, 2),
+            (fake_service_2, 1)]
+
+        self.mox.StubOutWithMock(db, 'volume_get')
+        self.mox.StubOutWithMock(db, 'service_get_all_volume_sorted')
+        self.mox.StubOutWithMock(driver, 'cast_to_volume_host')
+        self.mox.StubOutWithMock(utils, 'service_is_up')
+
+        db.volume_get(self.context, volume_id).AndReturn(fake_volume)
+        db.service_get_all_volume_sorted(IsA(context.RequestContext))\
+        .AndReturn(fake_result)
+        utils.service_is_up(IsA(dict)).AndReturn(True)
+        driver.cast_to_volume_host(self.context, 'fake_host1',
+            'create_share',
+            volume_id=volume_id)
+
+        self.mox.ReplayAll()
+        self.driver.schedule_create_share(self.context, volume_id)
+
+    def test_create_share_if_services_not_available(self):
+        volume_id = 'fake'
+        fake_volume = {'id': volume_id,
+                       'size': 1}
+
+        fake_result = []
+
+        self.mox.StubOutWithMock(db, 'volume_get')
+        self.mox.StubOutWithMock(db, 'service_get_all_volume_sorted')
+
+        db.volume_get(self.context, volume_id).AndReturn(fake_volume)
+        db.service_get_all_volume_sorted(IsA(context.RequestContext))\
+        .AndReturn(fake_result)
+
+        self.mox.ReplayAll()
+        self.assertRaises(exception.NoValidHost,
+            self.driver.schedule_create_share, self.context, volume_id)
+
+    def test_create_share_availability_zone(self):
+        volume_id = 'fake'
+        fake_volume = {'id': volume_id,
+                       'availability_zone': 'fake:fake',
+                       'size': 1}
+
+        fake_service_1 = {'disabled': False,
+                          'host': 'fake_host1'}
+
+        fake_service_2 = {'disabled': False,
+                          'host': 'fake_host2'}
+
+        fake_result = [(fake_service_1, 2),
+            (fake_service_2, 1)]
+
+        self.mox.StubOutWithMock(db, 'volume_get')
+        self.mox.StubOutWithMock(db, 'service_get_by_args')
+        self.mox.StubOutWithMock(driver, 'cast_to_volume_host')
+        self.mox.StubOutWithMock(utils, 'service_is_up')
+
+        db.volume_get(self.admin_context, volume_id).AndReturn(fake_volume)
+        db.service_get_by_args(IsA(context.RequestContext), 'fake',
+            'cinder-volume')\
+        .AndReturn('fake_service')
+        utils.service_is_up('fake_service').AndReturn(True)
+        driver.cast_to_volume_host(self.admin_context, 'fake',
+            'create_share',
+            volume_id=volume_id)
+
+        self.mox.ReplayAll()
+        self.driver.schedule_create_share(self.admin_context, volume_id)

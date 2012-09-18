@@ -23,7 +23,7 @@ SQLAlchemy models for cinder data.
 
 from sqlalchemy.orm import relationship, backref, object_mapper
 from sqlalchemy import Column, Integer, String, schema
-from sqlalchemy import ForeignKey, DateTime, Boolean
+from sqlalchemy import ForeignKey, DateTime, Boolean, Enum
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -326,6 +326,39 @@ class SMVolume(BASE, CinderBase):
     vdi_uuid = Column(String(255))
 
 
+class Share(BASE, CinderBase):
+    """Represents an NFS and CIFS shares."""
+    __tablename__ = 'shares'
+
+    @property
+    def name(self):
+        return FLAGS.share_name_template % self.id
+
+    id = Column(Integer(), primary_key=True, autoincrement=True)
+
+    proto = Column(String(255))
+    volume_id = Column(String(36), ForeignKey('volumes.id'))
+    export_location = Column(String(255))
+
+
+class ShareAccessMapping(BASE, CinderBase):
+    """Represents access to NFS"""
+    STATE_NEW = 'new'
+    STATE_ACTIVE = 'active'
+    STATE_DELETING = 'deleting'
+    STATE_DELETED = 'deleted'
+    STATE_ERROR = 'error'
+
+    __tablename__ = 'share_access_map'
+    id = Column(Integer(), primary_key=True, autoincrement=True)
+    volume_id = Column(String(36))
+    access_type = Column(String(255))
+    access_to = Column(String(255))
+    state = Column(Enum(STATE_NEW, STATE_ACTIVE,
+                        STATE_DELETING, STATE_DELETED, STATE_ERROR),
+                        default=STATE_NEW)
+
+
 def register_models():
     """Register Models and create metadata.
 
@@ -343,6 +376,8 @@ def register_models():
               VolumeMetadata,
               VolumeTypeExtraSpecs,
               VolumeTypes,
+              Share,
+              ShareAccessMapping
               )
     engine = create_engine(FLAGS.sql_connection, echo=False)
     for model in models:

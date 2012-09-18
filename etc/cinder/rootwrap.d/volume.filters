@@ -30,3 +30,30 @@ iscsiadm_usr: CommandFilter, /usr/bin/iscsiadm, root
 
 #nova/volume/.py: utils.temporary_chown(path, 0), ...
 chown: CommandFilter, /bin/chown, root
+
+# nova/volume/nas_driver.py: 'mkfs.ext4', '/dev/mapper/%s'
+mkfs.ext4: CommandFilter, /sbin/mkfs.ext4, root
+
+# nova/volume/nas_driver.py: 'exportfs', ...
+exportfs: CommandFilter, /usr/sbin/exportfs, root
+
+# nova/volume/nas_driver.py: 'smbd', '-s', '%s', '-D'
+smbd: CommandFilter, /usr/sbin/smbd, root
+
+# nova/volume/nas_driver.py: 'umount', '-f', '%s'
+umount: CommandFilter, /bin/umount, root
+
+# nova/volume/nas_driver.py: 'mount', '/dev/mapper/%s', '%s'
+mount: CommandFilter, /bin/mount, root
+
+# nova/volume/nas_driver.py: 'chmod', '777', '%s'
+chmod: CommandFilter, /bin/chmod, root
+
+# nova/volume/nas_driver.py: 'chown', 'nobody', '-R', '%s'
+chown: CommandFilter, /bin/chown, root
+
+# nova/volume/nas_driver.py: 'pkill', '-HUP', 'smbd'
+pkill: CommandFilter, /usr/bin/pkill, root
+
+# nova/volume/nas_driver.py: 'smbcontrol', 'all', 'close-share', '%s'
+smbcontrol: CommandFilter, /usr/bin/smbcontrol, root

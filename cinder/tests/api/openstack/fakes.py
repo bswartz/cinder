@@ -276,3 +276,41 @@ def stub_snapshot_get_all(self):
 
 def stub_snapshot_get_all_by_project(self, context):
     return [stub_snapshot(1)]
+
+
+def stub_share(id, **kwargs):
+    share = {
+        'id': id,
+        'proto': 'fakeproto',
+        'volume_id': 'fake_volume_id',
+        'export_location': 'fake_location'}
+
+    share.update(kwargs)
+    return share
+
+
+def stub_share_get(self, context, share_id):
+    return stub_share(share_id)
+
+
+def stub_share_get_notfound(self, context, share_id):
+    raise exc.NotFound
+
+
+def stub_share_create(self, context, proto, size, name, description,
+                      **param):
+    volume = stub_volume_create(self, context, size, name, description,
+        param['snapshot'])
+    share = stub_share('1')
+    return share, volume
+
+
+def stub_share_volume_get(self, context, share_id):
+    share = stub_share(share_id)
+    return share, stub_volume_get(self, context,
+        share['volume_id'])
+
+
+def stub_get_all_shares_volumes(self, context):
+    return [(stub_share_get(self, context, '1'), stub_volume_get(self,
+        context, '1'))]

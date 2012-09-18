@@ -1344,3 +1344,160 @@ def quota_usage_destroy(context, project_id, resource):
         quota_usage_ref = quota_usage_get(context, project_id, resource,
                                           session=session)
         quota_usage_ref.delete(session=session)
+
+
+################
+
+
+def _share_get_query(context, session=None):
+    if session is None:
+        session = get_session()
+    query = model_query(context, models.Share, session=session)
+    return query.filter_by(deleted=False)
+
+
+def _share_volume_get_query(context, session=None):
+    if session is None:
+        session = get_session()
+    query = model_query(context, models.Share, models.Volume,
+                        session=session).join(models.Volume)
+    return query.filter_by(deleted=False)
+
+
+@require_context
+def share_create(context, values):
+    share_ref = models.Share()
+    share_ref.update(values)
+    session = get_session()
+    with session.begin():
+        share_ref.save(session=session)
+
+    return share_ref
+
+
+@require_context
+def share_update(context, share_id, values):
+    session = get_session()
+    with session.begin():
+        share_ref = share_get(context, share_id, session=session)
+        share_ref.update(values)
+        share_ref.save(session=session)
+
+
+@require_context
+def share_get(context, share_id, session=None):
+    result = _share_get_query(context, session).filter_by(id=share_id).first()
+    if result is None:
+        raise exception.NotFound()
+    return result
+
+
+@require_context
+def share_volume_get(context, volume_id):
+    result = _share_volume_get_query(context)
+    result = result.filter_by(id=volume_id).first()
+    if result is None:
+        raise exception.NotFound()
+    return result
+
+
+@require_admin_context
+def share_volume_get_all(context):
+    return _share_volume_get_query(context).all()
+
+
+@require_admin_context
+def shares_volume_get_all_by_host(context, host):
+    query = _share_volume_get_query(context)
+    return query.filter_by(host=host).all()
+
+
+@require_context
+def share_volume_get_all_by_project(context, project_id):
+    """Returns list of (Share, Volume) pairs with given project ID"""
+    return _share_volume_get_query(context).\
+                filter_by(project_id=project_id).all()
+
+
+@require_context
+def share_get_by_volume_id(context, volume_id):
+    result = _share_get_query(context).filter_by(volume_id=volume_id)
+    result = result.first()
+    if result is None:
+        raise exception.NotFound()
+    return result
+
+
+@require_context
+def share_delete(context, share_id):
+    session = get_session()
+    share_ref = share_get(context, share_id, session)
+    share_ref.update({'deleted': True,
+                      'deleted_at': timeutils.utcnow(),
+                      'updated_at': literal_column('updated_at'),
+                      'status': 'deleted'})
+    share_ref.save(session)
+
+
+###################
+
+
+def _share_access_get_query(context, session, values):
+    """
+    Get access record
+    """
+    query = model_query(context, models.ShareAccessMapping, session=session)
+    return query.filter_by(**values)
+
+
+@require_context
+def share_access_create(context, values):
+    session = get_session()
+    with session.begin():
+        access_ref = models.ShareAccessMapping()
+        access_ref.update(values)
+        access_ref.save(session=session)
+        return access_ref
+
+
+@require_context
+def share_access_get(context, access_id):
+    """
+    Get access record
+    """
+    session = get_session()
+    access = _share_access_get_query(context, session,
+                                     {'id': access_id}).first()
+    if access:
+        return access
+    else:
+        raise exception.NotFound()
+
+
+@require_context
+def share_access_get_all_for_share(context, volume_id):
+    session = get_session()
+    return _share_access_get_query(context, session,
+                                   {'volume_id': volume_id}).all()
+
+
+@require_context
+def share_access_delete(context, access_id):
+    session = get_session()
+    with session.begin():
+        session.query(models.ShareAccessMapping).\
+        filter_by(id=access_id).\
+        update({'deleted': True,
+                'deleted_at': timeutils.utcnow(),
+                'updated_at': literal_column('updated_at'),
+                'state': models.ShareAccessMapping.STATE_DELETED})
+
+
+@require_context
+def share_access_update(context, access_id, values):
+    session = get_session()
+    with session.begin():
+        access = _share_access_get_query(context, session, {'id': access_id})
+        access = access.one()
+        access.update(values)
+        access.save(session=session)

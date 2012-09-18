@@ -56,6 +56,14 @@ def fake_snapshot_get_all(self, context, search_opts=None):
     return [param]
 
 
+def fake_get_all_shares_volumes(self, context):
+    return []
+
+
+def fake_get_share_volume(self, context, volume_id):
+    raise exception.NotFound()
+
+
 class ExtendedSnapshotAttributesTest(test.TestCase):
     content_type = 'application/json'
     prefix = 'os-extended-snapshot-attributes:'
@@ -65,6 +73,10 @@ class ExtendedSnapshotAttributesTest(test.TestCase):
         self.stubs.Set(volume.api.API, 'get_snapshot', fake_snapshot_get)
         self.stubs.Set(volume.api.API, 'get_all_snapshots',
                        fake_snapshot_get_all)
+        self.stubs.Set(volume.api.API, 'get_all_shares_volumes',
+                       fake_get_all_shares_volumes)
+        self.stubs.Set(volume.api.API, 'get_share_volume',
+                       fake_get_share_volume)
 
     def _make_request(self, url):
         req = webob.Request.blank(url)

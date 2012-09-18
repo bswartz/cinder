@@ -69,6 +69,24 @@ FLAGS = flags.FLAGS
 FLAGS.register_opts(volume_manager_opts)
 
 
+class DriverActionExtension(object):
+    """Class that can be used call extended functionality for driver
+    on create, ensure and delete step
+    """
+
+    def create(self, context, volume):
+        pass
+
+    def ensure(self, context, volume):
+        pass
+
+    def delete(self, context, volume):
+        pass
+
+    def destroy(self, context, volume):
+        pass
+
+
 class VolumeManager(manager.SchedulerDependentManager):
     """Manages attachable block storage devices."""
     def __init__(self, volume_driver=None, *args, **kwargs):
@@ -100,7 +118,7 @@ class VolumeManager(manager.SchedulerDependentManager):
                 LOG.info(_("volume %s: skipping export"), volume['name'])
 
     def create_volume(self, context, volume_id, snapshot_id=None,
-                      image_id=None):
+                      image_id=None, action_extension=None):
         """Creates and exports the volume."""
         context = context.elevated()
         volume_ref = self.db.volume_get(context, volume_id)
@@ -147,6 +165,9 @@ class VolumeManager(manager.SchedulerDependentManager):
             model_update = self.driver.create_export(context, volume_ref)
             if model_update:
                 self.db.volume_update(context, volume_ref['id'], model_update)
+
+            if action_extension is not None:
+                action_extension.create(context, volume_ref)
         except Exception:
             with excutils.save_and_reraise_exception():
                 self.db.volume_update(context,
@@ -165,7 +186,7 @@ class VolumeManager(manager.SchedulerDependentManager):
         self._notify_about_volume_usage(context, volume_ref, "create.end")
         return volume_ref['id']
 
-    def delete_volume(self, context, volume_id):
+    def delete_volume(self, context, volume_id, action_extension=None):
         """Deletes and unexports volume."""
         context = context.elevated()
         volume_ref = self.db.volume_get(context, volume_id)
@@ -179,6 +200,8 @@ class VolumeManager(manager.SchedulerDependentManager):
         self._notify_about_volume_usage(context, volume_ref, "delete.start")
         self._reset_stats()
         try:
+            if action_extension is not None:
+                action_extension.delete(context, volume_ref)
             LOG.debug(_("volume %s: removing export"), volume_ref['name'])
             self.driver.remove_export(context, volume_ref)
             LOG.debug(_("volume %s: deleting"), volume_ref['name'])
@@ -186,6 +209,8 @@ class VolumeManager(manager.SchedulerDependentManager):
         except exception.VolumeIsBusy:
             LOG.debug(_("volume %s: volume is busy"), volume_ref['name'])
             self.driver.ensure_export(context, volume_ref)
+            if action_extension is not None:
+                action_extension.ensure(context, volume_ref)
             self.db.volume_update(context, volume_ref['id'],
                                   {'status': 'available'})
             return True
@@ -196,6 +221,8 @@ class VolumeManager(manager.SchedulerDependentManager):
                                       {'status': 'error_deleting'})
 
         self.db.volume_destroy(context, volume_id)
+        if action_extension is not None:
+            action_extension.destroy(context, volume_ref)
         LOG.debug(_("volume %s: deleted successfully"), volume_ref['name'])
         self._notify_about_volume_usage(context, volume_ref, "delete.end")
         return True
@@ -383,6 +410,22 @@ class VolumeManager(manager.SchedulerDependentManager):
                                                           instance_uuid)
         for volume in volumes:
             self.driver.check_for_export(context, volume['id'])
+
+    def create_share(self, context, volume_id, snapshot_id=None):
+        """Create new share based on some volume"""
+        raise NotImplementedError()
+
+    def delete_share(self, context, volume_id):
+        """ Create new share based on some volume """
+        raise NotImplementedError()
+
+    def allow_access(self, context, access_id):
+        """Gives access to the share"""
+        raise NotImplementedError()
+
+    def deny_access(self, context, access_id):
+        """Remove access to the share"""
+        raise NotImplementedError()
 
     def _volume_stats_changed(self, stat1, stat2):
         if FLAGS.volume_force_update_capabilities:

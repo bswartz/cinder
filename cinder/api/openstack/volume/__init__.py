@@ -25,6 +25,7 @@ from cinder.api.openstack.volume import extensions
 from cinder.api.openstack.volume import snapshots
 from cinder.api.openstack.volume import types
 from cinder.api.openstack.volume import volumes
+from cinder.api.openstack.volume import shares
 from cinder.api.openstack.volume import versions
 from cinder.openstack.common import log as logging
 
@@ -50,6 +51,12 @@ class APIRouter(cinder.api.openstack.APIRouter):
         self.resources['volumes'] = volumes.create_resource(ext_mgr)
         mapper.resource("volume", "volumes",
                         controller=self.resources['volumes'],
+                        collection={'detail': 'GET'},
+                        member={'action': 'POST'})
+
+        self.resources['shares'] = shares.create_resource()
+        mapper.resource("share", "shares",
+                        controller=self.resources['shares'],
                         collection={'detail': 'GET'},
                         member={'action': 'POST'})
 
