@@ -21,12 +21,14 @@ import time
 import mox
 
 from cinder.brick import exception
+from cinder.brick.nfs import nfs
 from cinder.brick.initiator import connector
 from cinder.brick.initiator import host_driver
 from cinder.brick.initiator import linuxfc
 from cinder.brick.initiator import linuxscsi
 from cinder.openstack.common import log as logging
 from cinder.openstack.common import processutils as putils
+from cinder.volume import configuration as conf
 from cinder import test
 
 LOG = logging.getLogger(__name__)
@@ -65,6 +67,10 @@ class ConnectorTestCase(test.TestCase):
         obj = connector.InitiatorConnector.factory('aoe')
         self.assertTrue(obj.__class__.__name__,
                         "AoEConnector")
+
+        obj = connector.InitiatorConnector.factory('nfs')
+        self.assertTrue(obj.__class__.__name__,
+                        "NfsConnector")
 
         self.assertRaises(ValueError,
                           connector.InitiatorConnector.factory,
@@ -424,4 +430,47 @@ class AoEConnectorTestCase(ConnectorTestCase):
                                 check_exit_code=0).AndReturn(("", ""))
         self.mox.ReplayAll()
 
+        self.connector.disconnect_volume(self.connection_properties, {})
+
+
+class NfsConnectorTestCase(ConnectorTestCase):
+    """Test cases for NFS initiator class."""
+    TEST_DEV = '172.18.194.100:/var/nfs'
+    TEST_PATH = '/mnt/test/df0808229363aad55c27da50c38d6328'
+
+    def setUp(self):
+        super(NfsConnectorTestCase, self).setUp()
+        self.mox = mox.Mox()
+        self.connector = connector.NfsConnector()
+        self.connection_properties = {'export': self.TEST_DEV,
+                'name': '9c592d52-ce47-4263-8c21-4ecf3c029cdb'}
+        self.configuration = mox.MockObject(conf.Configuration)
+        self.configuration.append_config_values(mox.IgnoreArg())
+        self.configuration.nfs_mount_options = None
+        self.configuration.nfs_mount_point_base = '/mnt/test'
+        self.connector._nfsclient.configuration = self.configuration
+
+    def tearDown(self):
+        self.mox.VerifyAll()
+        self.mox.UnsetStubs()
+        super(NfsConnectorTestCase, self).tearDown()
+
+    def test_connect_volume(self):
+        """Test the basic connect volume case."""
+        client = self.connector._nfsclient
+        self.mox.StubOutWithMock(client, '_execute')
+        client._execute('mount',
+                        check_exit_code=0).AndReturn(("", ""))
+        client._execute('mkdir', '-p', self.TEST_PATH,
+                        check_exit_code=0).AndReturn(("", ""))
+        client._execute('mount', '-t', 'nfs',
+                        self.TEST_DEV, self.TEST_PATH,
+                        root_helper='sudo', run_as_root=True,
+                        check_exit_code=0).AndReturn(("", ""))
+        self.mox.ReplayAll()
+
+        self.connector.connect_volume(self.connection_properties)
+
+    def test_disconnect_volume(self):
+        """Nothing should happen here -- make sure it doesn't blow up."""
         self.connector.disconnect_volume(self.connection_properties, {})

@@ -16,6 +16,7 @@
 #    under the License.
 
 import errno
+import hashlib
 import os
 
 from oslo.config import cfg
@@ -120,6 +121,12 @@ class GlusterfsDriver(nfs.RemoteFsDriver):
             raise exception.GlusterfsNoSuitableShareFound(
                 volume_size=volume_size_for)
         return greatest_share
+
+    def _get_hash_str(self, base_str):
+        """returns string that represents hash of base_str
+        (in a hex format).
+        """
+        return hashlib.md5(base_str).hexdigest()
 
     def _get_mount_point_for_share(self, glusterfs_share):
         """Return mount point for share.

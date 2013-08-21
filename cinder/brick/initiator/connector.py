@@ -26,6 +26,7 @@ from cinder.brick.initiator import executor
 from cinder.brick.initiator import host_driver
 from cinder.brick.initiator import linuxfc
 from cinder.brick.initiator import linuxscsi
+from cinder.brick.nfs import nfs
 from cinder.openstack.common.gettextutils import _
 from cinder.openstack.common import lockutils
 from cinder.openstack.common import log as logging
@@ -102,6 +103,10 @@ class InitiatorConnector(executor.Executor):
                                          use_multipath=use_multipath)
         elif protocol == "AOE":
             return AoEConnector(execute=execute,
+                                driver=driver,
+                                root_helper=root_helper)
+        elif protocol == "NFS":
+            return NfsConnector(execute=execute,
                                 driver=driver,
                                 root_helper=root_helper)
         else:
@@ -762,3 +767,44 @@ class AoEConnector(InitiatorConnector):
                                    check_exit_code=0)
         LOG.debug(_('aoe-flush %(dev)s: stdout=%(out)s stderr%(err)s') %
                   {'dev': aoe_device, 'out': out, 'err': err})
+
+
+class NfsConnector(InitiatorConnector):
+    """Connector class to attach/detach NFS volumes."""
+
+    def __init__(self, driver=None, execute=putils.execute,
+                 root_helper="sudo", *args, **kwargs):
+        self._nfsclient = nfs.NfsClient(execute, root_helper)
+        super(NfsConnector, self).__init__(driver, execute, root_helper,
+                                           *args, **kwargs)
+
+    def set_execute(self, execute):
+        super(NfsConnector, self).set_execute(execute)
+        self._nfsclient._set_execute(execute)
+
+    def connect_volume(self, connection_properties):
+        """Ensure that the NFS export containing the volume is mounted.
+
+        connection_properties must include:
+        export - NFS export (e.g. '172.18.194.100:/var/nfs')
+        name - file name within the export
+
+        connection_properties may optionally inclued:
+        options - options to pass to mount.nfs
+        """
+
+        mnt_flags = []
+        if 'options' in connection_properties:
+            mnt_flags = connection_properties['options'].split()
+
+        nfs_share = connection_properties['export']
+        self._nfsclient.mount(nfs_share, mnt_flags)
+        mount_point = self._nfsclient.get_mount_point(nfs_share)
+
+        path = mount_point + '/' + connection_properties['name']
+
+        return {'path': path}
+
+    def disconnect_volume(self, connection_properties, device_info):
+        """No need to do anything to disconnect a NFS volume."""
+        pass

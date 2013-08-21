@@ -55,9 +55,10 @@ du: CommandFilter, du, root
 truncate: CommandFilter, truncate, root
 chmod: CommandFilter, chmod, root
 rm: CommandFilter, rm, root
+mv: CommandFilter, mv, root
 lvs: CommandFilter, lvs, root
 
-# cinder/volumes/drivers/hds/hds.py: 
+# cinder/volumes/drivers/hds/hds.py:
 hus-cmd: CommandFilter, hus-cmd, root
 
 # cinder/brick/initiator/connector.py:
