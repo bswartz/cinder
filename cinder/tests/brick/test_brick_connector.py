@@ -27,6 +27,7 @@ from cinder.brick.initiator import host_driver
 from cinder.brick.initiator import linuxfc
 from cinder.brick.initiator import linuxscsi
 from cinder.openstack.common import log as logging
+from cinder.openstack.common import loopingcall
 from cinder.openstack.common import processutils as putils
 from cinder.volume import configuration as conf
 from cinder import test
@@ -46,25 +47,25 @@ class ConnectorTestCase(test.TestCase):
         return "", None
 
     def test_connect_volume(self):
-        self.connector = connector.InitiatorConnector()
+        self.connector = connector.InitiatorConnector(None)
         self.assertRaises(NotImplementedError,
                           self.connector.connect_volume, None)
 
     def test_disconnect_volume(self):
-        self.connector = connector.InitiatorConnector()
+        self.connector = connector.InitiatorConnector(None)
         self.assertRaises(NotImplementedError,
                           self.connector.disconnect_volume, None, None)
 
     def test_factory(self):
-        obj = connector.InitiatorConnector.factory('iscsi')
+        obj = connector.InitiatorConnector.factory('iscsi', None)
         self.assertTrue(obj.__class__.__name__,
                         "ISCSIConnector")
 
-        obj = connector.InitiatorConnector.factory('fibre_channel')
+        obj = connector.InitiatorConnector.factory('fibre_channel', None)
         self.assertTrue(obj.__class__.__name__,
                         "FibreChannelConnector")
 
-        obj = connector.InitiatorConnector.factory('aoe')
+        obj = connector.InitiatorConnector.factory('aoe', None)
         self.assertTrue(obj.__class__.__name__,
                         "AoEConnector")
 
@@ -74,16 +75,16 @@ class ConnectorTestCase(test.TestCase):
 
         self.assertRaises(ValueError,
                           connector.InitiatorConnector.factory,
-                          "bogus")
+                          "bogus", None)
 
     def test_check_valid_device_with_wrong_path(self):
-        self.connector = connector.InitiatorConnector()
+        self.connector = connector.InitiatorConnector(None)
         self.stubs.Set(self.connector,
                        '_execute', lambda *args, **kwargs: ("", None))
         self.assertFalse(self.connector.check_valid_device('/d0v'))
 
     def test_check_valid_device(self):
-        self.connector = connector.InitiatorConnector()
+        self.connector = connector.InitiatorConnector(None)
         self.stubs.Set(self.connector,
                        '_execute', lambda *args, **kwargs: ("", ""))
         self.assertTrue(self.connector.check_valid_device('/dev'))
@@ -91,7 +92,7 @@ class ConnectorTestCase(test.TestCase):
     def test_check_valid_device_with_cmd_error(self):
         def raise_except(*args, **kwargs):
             raise putils.ProcessExecutionError
-        self.connector = connector.InitiatorConnector()
+        self.connector = connector.InitiatorConnector(None)
         self.stubs.Set(self.connector,
                        '_execute', raise_except)
         self.assertFalse(self.connector.check_valid_device('/dev'))
@@ -115,8 +116,8 @@ class ISCSIConnectorTestCase(ConnectorTestCase):
 
     def setUp(self):
         super(ISCSIConnectorTestCase, self).setUp()
-        self.connector = connector.ISCSIConnector(execute=self.fake_execute,
-                                                  use_multipath=False)
+        self.connector = connector.ISCSIConnector(
+            None, execute=self.fake_execute, use_multipath=False)
         self.stubs.Set(self.connector._linuxscsi,
                        'get_name_from_path', lambda x: "/dev/sdb")
 
@@ -202,7 +203,7 @@ class ISCSIConnectorTestCase(ConnectorTestCase):
         connection_properties = self.iscsi_connection(vol, location, iqn)
 
         self.connector_with_multipath =\
-            connector.ISCSIConnector(use_multipath=True)
+            connector.ISCSIConnector(None, use_multipath=True)
         self.stubs.Set(self.connector_with_multipath,
                        '_run_iscsiadm_bare',
                        lambda *args, **kwargs: "%s %s" % (location, iqn))
@@ -245,7 +246,7 @@ class FibreChannelConnectorTestCase(ConnectorTestCase):
     def setUp(self):
         super(FibreChannelConnectorTestCase, self).setUp()
         self.connector = connector.FibreChannelConnector(
-            execute=self.fake_execute, use_multipath=False)
+            None, execute=self.fake_execute, use_multipath=False)
         self.assertIsNotNone(self.connector)
         self.assertIsNotNone(self.connector._linuxfc)
         self.assertIsNotNone(self.connector._linuxscsi)
@@ -336,14 +337,41 @@ class FibreChannelConnectorTestCase(ConnectorTestCase):
                           connection_info['data'])
 
 
+class FakeFixedIntervalLoopingCall(object):
+    def __init__(self, f=None, *args, **kw):
+        self.args = args
+        self.kw = kw
+        self.f = f
+        self._stop = False
+
+    def stop(self):
+        self._stop = True
+
+    def wait(self):
+        return self
+
+    def start(self, interval, initial_delay=None):
+        while not self._stop:
+            try:
+                self.f(*self.args, **self.kw)
+            except loopingcall.LoopingCallDone:
+                return self
+            except Exception:
+                LOG.exception(_('in fixed duration looping call'))
+                raise
+
+
 class AoEConnectorTestCase(ConnectorTestCase):
     """Test cases for AoE initiator class."""
     def setUp(self):
         super(AoEConnectorTestCase, self).setUp()
         self.mox = mox.Mox()
-        self.connector = connector.AoEConnector()
+        self.connector = connector.AoEConnector('sudo')
         self.connection_properties = {'target_shelf': 'fake_shelf',
                                       'target_lun': 'fake_lun'}
+        self.stubs.Set(loopingcall,
+                       'FixedIntervalLoopingCall',
+                       FakeFixedIntervalLoopingCall)
 
     def tearDown(self):
         self.mox.VerifyAll()
