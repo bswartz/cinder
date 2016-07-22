@@ -17,6 +17,8 @@
 Scheduler host weights
 """
 
+import random
+
 from cinder.scheduler import base_weight
 
 
@@ -37,8 +39,48 @@ class BaseHostWeigher(base_weight.BaseWeigher):
     pass
 
 
-class HostWeightHandler(base_weight.BaseWeightHandler):
+class TopHostWeightHandler(base_weight.BaseWeightHandler):
     object_class = WeighedHost
 
     def __init__(self, namespace):
-        super(HostWeightHandler, self).__init__(BaseHostWeigher, namespace)
+        super(TopHostWeightHandler, self).__init__(BaseHostWeigher, namespace)
+
+    def get_weighed_objects(self, weigher_classes, obj_list,
+                            weighing_properties):
+        """Return a sorted (descending) list of WeighedHosts."""
+        weighed_objs = base_weight.BaseWeightHandler.get_weighed_objects(
+            self, weigher_classes, obj_list, weighing_properties)
+        return sorted(weighed_objs, key=lambda x: x.weight, reverse=True)
+
+
+class StochasticHostWeightHandler(base_weight.BaseWeightHandler):
+    object_class = WeighedHost
+
+    def __init__(self, namespace):
+        super(StochasticHostWeightHandler, self).__init__(BaseHostWeigher,
+                                                          namespace)
+
+    def get_weighed_objects(self, weigher_classes, obj_list,
+                            weighing_properties):
+        weighed_objs = base_weight.BaseWeightHandler.get_weighed_objects(
+            self, weigher_classes, obj_list, weighing_properties)
+
+        # First compute the total weight of all the objects and the upper
+        # bound for each object to "win" the lottery.
+        total_weight = 0
+        table = []
+        for weighed_obj in weighed_objs:
+            total_weight += weighed_obj.weight
+            max_value = total_weight
+            table.append((max_value, weighed_obj))
+        # Now draw a random value with the computed range
+        winning_value = random.random() * total_weight
+        # Scan the table to find the first object with a maximum higher than
+        # the random number. This is the winner. Save the index.
+        winning_index = 0
+        for (max_value, weighed_obj) in table:
+            if max_value > winning_value:
+                winning_index = weighed_objs.index(weighed_obj)
+        print 'Winner %f %d' % (winning_value, winning_index)
+        # Rotate the array so the winner is first
+        return weighed_objs[winning_index:] + weighed_objs[0:winning_index]

@@ -123,7 +123,7 @@ class BaseWeightHandler(base_handler.BaseHandler):
 
     def get_weighed_objects(self, weigher_classes, obj_list,
                             weighing_properties):
-        """Return a sorted (descending), normalized list of WeighedObjects."""
+        """Return a normalized list of WeighedObjects."""
 
         if not obj_list:
             return []
@@ -142,4 +142,4 @@ class BaseWeightHandler(base_handler.BaseHandler):
                 obj = weighed_objs[i]
                 obj.weight += weigher.weight_multiplier() * weight
 
-        return sorted(weighed_objs, key=lambda x: x.weight, reverse=True)
+        return weighed_objs

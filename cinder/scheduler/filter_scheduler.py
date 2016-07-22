@@ -29,6 +29,7 @@ from cinder.scheduler import driver
 from cinder.scheduler import scheduler_options
 from cinder.volume import utils
 
+
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
 

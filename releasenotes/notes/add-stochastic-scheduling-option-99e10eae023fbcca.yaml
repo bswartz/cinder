@@ -1,0 +1,8 @@
+---
+features:
+  - Added a new config option `filter_schedule_stochastic`. This is a global
+    option which causes the scheduler to randomly choose pools when
+    scheduling, if the filter scheduler is used. The random probabilities
+    are proportional to the weights, so higher weighted pools are chosen
+    more frequently, but not all the time. By default the old behavior is
+    used, where the highest weighted pool is chosen every time.
